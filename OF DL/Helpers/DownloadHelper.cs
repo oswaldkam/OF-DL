@@ -655,7 +655,7 @@ public class DownloadHelper : IDownloadHelper
         string resolvedFilename = await GenerateCustomFileName(filename, filenameFormat, postInfo, postMedia, author, folder.Split("/")[^1], users, _FileNameHelper, CustomFileNameOption.ReturnOriginal);
 
         var result = await CreateDirectoriesAndDownloadMedia(path, url, folder, media_id, api_type, task, filename, resolvedFilename);
-        await DownloadPostInJson(folder, postInfo);
+        // await DownloadPostInJson(folder, postInfo);
         return result;
     }
     public async Task<bool> DownloadPostMedia(string url, string folder, long media_id, string api_type, ProgressTask task, string? filenameFormat, SinglePost? postInfo, SinglePost.Medium? postMedia, SinglePost.Author? author, Dictionary<string, int> users)
@@ -675,7 +675,7 @@ public class DownloadHelper : IDownloadHelper
         string resolvedFilename = await GenerateCustomFileName(filename, filenameFormat, postInfo, postMedia, author, folder.Split("/")[^1], users, _FileNameHelper, CustomFileNameOption.ReturnOriginal);
 
         var result = await CreateDirectoriesAndDownloadMedia(path, url, folder, media_id, api_type, task, filename, resolvedFilename);
-        await DownloadPostInJson(folder, postInfo);
+        // await DownloadPostInJson(folder, postInfo);
         return result;
     }
     public async Task<bool> DownloadStreamMedia(string url, string folder, long media_id, string api_type, ProgressTask task, string? filenameFormat, Streams.List? streamInfo, Streams.Medium? streamMedia, Streams.Author? author, Dictionary<string, int> users)
@@ -1311,7 +1311,7 @@ public class DownloadHelper : IDownloadHelper
                 if (!string.IsNullOrEmpty(customFileName) ? !File.Exists(folder + path + "/" + customFileName + ".mp4") : !File.Exists(folder + path + "/" + filename + "_source.mp4"))
                 {
                     var result = await DownloadDrmMedia(auth.USER_AGENT, policy, signature, kvp, auth.COOKIE, url, decryptionKey, folder, lastModified, media_id, api_type, task, customFileName, filename, path);
-                    await DownloadPostInJson(folder, postInfo);
+                    // await DownloadPostInJson(folder, postInfo);
                     return result;
                 }
                 else
@@ -1418,7 +1418,7 @@ public class DownloadHelper : IDownloadHelper
                 if (!string.IsNullOrEmpty(customFileName) ? !File.Exists(folder + path + "/" + customFileName + ".mp4") : !File.Exists(folder + path + "/" + filename + "_source.mp4"))
                 {
                     var result = await DownloadDrmMedia(auth.USER_AGENT, policy, signature, kvp, auth.COOKIE, url, decryptionKey, folder, lastModified, media_id, api_type, task, customFileName, filename, path);
-                    await DownloadPostInJson(folder, postInfo);
+                    // await DownloadPostInJson(folder, postInfo);
                     return result;
                 }
                 else
@@ -1799,57 +1799,57 @@ public class DownloadHelper : IDownloadHelper
     }
     #endregion
 
-    public async Task DownloadPostInJson(string folder, Post.List postInfo)
-    {
-        var path = string.Empty;
-        if (downloadConfig.FolderPerPost && postInfo != null && postInfo?.id is not null && postInfo?.postedAt is not null)
-        {
-            path = $"{folder}/Posts/Free/[{postInfo.postedAt:yyyy-MM-dd HH-mm}]{postInfo.id}/[{postInfo.postedAt:yyyy-MM-dd HH-mm}]{postInfo.id}.json";
-        }
-        else
-        {
-            path = "{folder}/Posts/Free/[{postInfo.postedAt:yyyy-MM-dd HH-mm}]{postInfo.id}.json";
-        }
+    // public async Task DownloadPostInJson(string folder, Post.List postInfo)
+    // {
+    //     var path = string.Empty;
+    //     if (downloadConfig.FolderPerPost && postInfo != null && postInfo?.id is not null && postInfo?.postedAt is not null)
+    //     {
+    //         path = $"{folder}/Posts/Free/[{postInfo.postedAt:yyyy-MM-dd HH-mm}]{postInfo.id}/[{postInfo.postedAt:yyyy-MM-dd HH-mm}]{postInfo.id}.json";
+    //     }
+    //     else
+    //     {
+    //         path = "{folder}/Posts/Free/[{postInfo.postedAt:yyyy-MM-dd HH-mm}]{postInfo.id}.json";
+    //     }
 
-        var directory = Path.GetDirectoryName(path);
-        if (!string.IsNullOrEmpty(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
+    //     var directory = Path.GetDirectoryName(path);
+    //     if (!string.IsNullOrEmpty(directory))
+    //     {
+    //         Directory.CreateDirectory(directory);
+    //     }
 
-        if (File.Exists(path))
-        {
-            return;
-        }
-        await using FileStream createStream = File.Create(path);
-        await JsonSerializer.SerializeAsync(createStream, postInfo);
+    //     if (File.Exists(path))
+    //     {
+    //         return;
+    //     }
+    //     await using FileStream createStream = File.Create(path);
+    //     await JsonSerializer.SerializeAsync(createStream, postInfo.text);
 
-    }
+    // }
 
-    public async Task DownloadPostInJson(string folder, SinglePost postInfo)
-    {
-        var path = string.Empty;
-        if (downloadConfig.FolderPerPost && postInfo != null && postInfo?.id is not null && postInfo?.postedAt is not null)
-        {
-            path = $"{folder}/Posts/Free/[{postInfo.postedAt:yyyy-MM-dd HH-mm}]{postInfo.id}/[{postInfo.postedAt:yyyy-MM-dd HH-mm}]{postInfo.id}.json";
-        }
-        else
-        {
-            path = $"{folder}/Posts/Free/[{postInfo.postedAt:yyyy-MM-dd HH-mm}]{postInfo.id}.json";
-        }
+    // public async Task DownloadPostInJson(string folder, SinglePost postInfo)
+    // {
+    //     var path = string.Empty;
+    //     if (downloadConfig.FolderPerPost && postInfo != null && postInfo?.id is not null && postInfo?.postedAt is not null)
+    //     {
+    //         path = $"{folder}/Posts/Free/[{postInfo.postedAt:yyyy-MM-dd HH-mm}]{postInfo.id}/[{postInfo.postedAt:yyyy-MM-dd HH-mm}]{postInfo.id}.json";
+    //     }
+    //     else
+    //     {
+    //         path = $"{folder}/Posts/Free/[{postInfo.postedAt:yyyy-MM-dd HH-mm}]{postInfo.id}.json";
+    //     }
 
-        var directory = Path.GetDirectoryName(path);
-        if (!string.IsNullOrEmpty(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
+    //     var directory = Path.GetDirectoryName(path);
+    //     if (!string.IsNullOrEmpty(directory))
+    //     {
+    //         Directory.CreateDirectory(directory);
+    //     }
 
-        if (File.Exists(path))
-        {
-            return;
-        }
-        await using FileStream createStream = File.Create(path);
-        await JsonSerializer.SerializeAsync(createStream, postInfo);
+    //     if (File.Exists(path))
+    //     {
+    //         return;
+    //     }
+    //     await using FileStream createStream = File.Create(path);
+    //     await JsonSerializer.SerializeAsync(createStream, postInfo.text);
 
-    }
+    // }
 }
