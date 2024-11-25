@@ -1462,8 +1462,9 @@ public class Program
                             oldPostCount++;
                         }
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        Log.Error(ex, "Error downloading post media");
                         Console.WriteLine("Media was null");
                     }
                 }
@@ -1974,8 +1975,9 @@ public class Program
                             oldStreamsCount++;
                         }
                     }
-                    catch
+                    catch(Exception ex)
                     {
+                        Log.Error(ex, "Error downloading stream media");
                         Console.WriteLine("Media was null");
                     }
                 }
@@ -2215,8 +2217,9 @@ public class Program
                             author: postInfo?.author,
                             users: users);
                     }
-                    catch
+                    catch(Exception ex)
                     {
+                        Log.Error(ex, "Error downloading post media");
                         Console.WriteLine("Media was null");
                     }
                 }
