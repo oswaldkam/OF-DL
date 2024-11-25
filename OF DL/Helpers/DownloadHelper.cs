@@ -23,6 +23,7 @@ using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using static OF_DL.Entities.Lists.UserList;
@@ -75,9 +76,9 @@ public class DownloadHelper : IDownloadHelper
         try
         {
             string customFileName = string.Empty;
-            if (!Directory.Exists(folder + path)) 
+            if (!Directory.Exists(folder + path))
             {
-                Directory.CreateDirectory(folder + path); 
+                Directory.CreateDirectory(folder + path);
             }
             string extension = Path.GetExtension(url.Split("?")[0]);
 
@@ -640,25 +641,29 @@ public class DownloadHelper : IDownloadHelper
         string path;
         if (downloadConfig.FolderPerPost && postInfo != null && postInfo?.id is not null && postInfo?.postedAt is not null)
         {
-            path = $"/Posts/Free/{postInfo.id} {postInfo.postedAt:yyyy-MM-dd HH-mm-ss}";
+            path = $"/Posts/Free/[{postInfo.postedAt:yyyy-MM-dd HH-mm}]{postInfo.id}";
         }
         else
         {
             path = "/Posts/Free";
         }
 
+
+
         Uri uri = new(url);
         string filename = System.IO.Path.GetFileNameWithoutExtension(uri.LocalPath);
         string resolvedFilename = await GenerateCustomFileName(filename, filenameFormat, postInfo, postMedia, author, folder.Split("/")[^1], users, _FileNameHelper, CustomFileNameOption.ReturnOriginal);
 
-        return await CreateDirectoriesAndDownloadMedia(path, url, folder, media_id, api_type, task, filename, resolvedFilename);
+        var result = await CreateDirectoriesAndDownloadMedia(path, url, folder, media_id, api_type, task, filename, resolvedFilename);
+        await DownloadPostInJson(folder, postInfo);
+        return result;
     }
     public async Task<bool> DownloadPostMedia(string url, string folder, long media_id, string api_type, ProgressTask task, string? filenameFormat, SinglePost? postInfo, SinglePost.Medium? postMedia, SinglePost.Author? author, Dictionary<string, int> users)
     {
         string path;
         if (downloadConfig.FolderPerPost && postInfo != null && postInfo?.id is not null && postInfo?.postedAt is not null)
         {
-            path = $"/Posts/Free/{postInfo.id} {postInfo.postedAt:yyyy-MM-dd HH-mm-ss}";
+            path = $"/Posts/Free/[{postInfo.postedAt:yyyy-MM-dd HH-mm}]{postInfo.id}";
         }
         else
         {
@@ -669,14 +674,16 @@ public class DownloadHelper : IDownloadHelper
         string filename = System.IO.Path.GetFileNameWithoutExtension(uri.LocalPath);
         string resolvedFilename = await GenerateCustomFileName(filename, filenameFormat, postInfo, postMedia, author, folder.Split("/")[^1], users, _FileNameHelper, CustomFileNameOption.ReturnOriginal);
 
-        return await CreateDirectoriesAndDownloadMedia(path, url, folder, media_id, api_type, task, filename, resolvedFilename);
+        var result = await CreateDirectoriesAndDownloadMedia(path, url, folder, media_id, api_type, task, filename, resolvedFilename);
+        await DownloadPostInJson(folder, postInfo);
+        return result;
     }
     public async Task<bool> DownloadStreamMedia(string url, string folder, long media_id, string api_type, ProgressTask task, string? filenameFormat, Streams.List? streamInfo, Streams.Medium? streamMedia, Streams.Author? author, Dictionary<string, int> users)
     {
         string path;
         if (downloadConfig.FolderPerPost && streamInfo != null && streamInfo?.id is not null && streamInfo?.postedAt is not null)
         {
-            path = $"/Posts/Free/{streamInfo.id} {streamInfo.postedAt:yyyy-MM-dd HH-mm-ss}";
+            path = $"/Posts/Free/[{streamInfo.postedAt:yyyy-MM-dd HH-mm}]{streamInfo.id}";
         }
         else
         {
@@ -696,7 +703,7 @@ public class DownloadHelper : IDownloadHelper
         string path;
         if (downloadConfig.FolderPerMessage && messageInfo != null && messageInfo?.id is not null && messageInfo?.createdAt is not null)
         {
-            path = $"/Messages/Free/{messageInfo.id} {messageInfo.createdAt.Value:yyyy-MM-dd HH-mm-ss}";
+            path = $"/Messages/Free/[{messageInfo.createdAt.Value:yyyy-MM-dd HH-mm}]{messageInfo.id}";
         }
         else
         {
@@ -733,7 +740,7 @@ public class DownloadHelper : IDownloadHelper
         string path;
         if (downloadConfig.FolderPerPaidMessage && messageInfo != null && messageInfo?.id is not null && messageInfo?.createdAt is not null)
         {
-            path = $"/Messages/Paid/{messageInfo.id} {messageInfo.createdAt.Value:yyyy-MM-dd HH-mm-ss}";
+            path = $"/Messages/Paid/[{messageInfo.createdAt.Value:yyyy-MM-dd HH-mm}]{messageInfo.id}";
         }
         else
         {
@@ -750,7 +757,7 @@ public class DownloadHelper : IDownloadHelper
         string path;
         if (downloadConfig.FolderPerPaidMessage && messageInfo != null && messageInfo?.id is not null && messageInfo?.createdAt is not null)
         {
-            path = $"/Messages/Paid/{messageInfo.id} {messageInfo.createdAt.Value:yyyy-MM-dd HH-mm-ss}";
+            path = $"/Messages/Paid/[{messageInfo.createdAt.Value:yyyy-MM-dd HH-mm}]{messageInfo.id}";
         }
         else
         {
@@ -776,7 +783,7 @@ public class DownloadHelper : IDownloadHelper
         string path;
         if (downloadConfig.FolderPerPaidPost && messageInfo != null && messageInfo?.id is not null && messageInfo?.postedAt is not null)
         {
-            path = $"/Posts/Paid/{messageInfo.id} {messageInfo.postedAt.Value:yyyy-MM-dd HH-mm-ss}";
+            path = $"/Posts/Paid/[{messageInfo.postedAt.Value:yyyy-MM-dd HH-mm}]{messageInfo.id}";
         }
         else
         {
@@ -793,19 +800,19 @@ public class DownloadHelper : IDownloadHelper
     {
         try
         {
-            string path = $"/Profile"; 
+            string path = $"/Profile";
 
-            if (!Directory.Exists(folder + path)) 
+            if (!Directory.Exists(folder + path))
             {
-                Directory.CreateDirectory(folder + path); 
+                Directory.CreateDirectory(folder + path);
             }
 
             if (!string.IsNullOrEmpty(avatarUrl))
             {
                 string avatarpath = $"{path}/Avatars";
-                if (!Directory.Exists(folder + avatarpath)) 
+                if (!Directory.Exists(folder + avatarpath))
                 {
-                    Directory.CreateDirectory(folder + avatarpath); 
+                    Directory.CreateDirectory(folder + avatarpath);
                 }
 
                 List<string> avatarMD5Hashes = WidevineClient.Utils.CalculateFolderMD5(folder + avatarpath);
@@ -846,9 +853,9 @@ public class DownloadHelper : IDownloadHelper
             if (!string.IsNullOrEmpty(headerUrl))
             {
                 string headerpath = $"{path}/Headers";
-                if (!Directory.Exists(folder + headerpath)) 
+                if (!Directory.Exists(folder + headerpath))
                 {
-                    Directory.CreateDirectory(folder + headerpath); 
+                    Directory.CreateDirectory(folder + headerpath);
                 }
 
                 List<string> headerMD5Hashes = WidevineClient.Utils.CalculateFolderMD5(folder + headerpath);
@@ -954,15 +961,15 @@ public class DownloadHelper : IDownloadHelper
             string filename = System.IO.Path.GetFileName(uri.LocalPath).Split(".")[0];
             if (downloadConfig.FolderPerMessage && messageInfo != null && messageInfo?.id is not null && messageInfo?.createdAt is not null)
             {
-                path = $"/Messages/Free/{messageInfo.id} {messageInfo.createdAt.Value:yyyy-MM-dd HH-mm-ss}/Videos";
+                path = $"/Messages/Free/[{messageInfo.createdAt.Value:yyyy-MM-dd HH-mm}]{messageInfo.id}] {messageInfo.text}/Videos";
             }
             else
             {
                 path = "/Messages/Free/Videos";
             }
-            if (!Directory.Exists(folder + path)) 
+            if (!Directory.Exists(folder + path))
             {
-                Directory.CreateDirectory(folder + path); 
+                Directory.CreateDirectory(folder + path);
             }
 
 
@@ -975,7 +982,7 @@ public class DownloadHelper : IDownloadHelper
                 {
                     properties.Add(match.Groups[1].Value);
                 }
-                Dictionary<string, string> values = await _FileNameHelper.GetFilename(messageInfo, messageMedia, fromUser, properties, folder.Split("/")[^1],users);
+                Dictionary<string, string> values = await _FileNameHelper.GetFilename(messageInfo, messageMedia, fromUser, properties, folder.Split("/")[^1], users);
                 customFileName = await _FileNameHelper.BuildFilename(filenameFormat, values);
             }
 
@@ -1062,15 +1069,15 @@ public class DownloadHelper : IDownloadHelper
             string filename = System.IO.Path.GetFileName(uri.LocalPath).Split(".")[0];
             if (downloadConfig.FolderPerPaidMessage && messageInfo != null && messageInfo?.id is not null && messageInfo?.createdAt is not null)
             {
-                path = $"/Messages/Paid/{messageInfo.id} {messageInfo.createdAt.Value:yyyy-MM-dd HH-mm-ss}/Videos";
+                path = $"/Messages/Paid/[{messageInfo.createdAt.Value:yyyy-MM-dd HH-mm}]{messageInfo.id}/Videos";
             }
             else
             {
                 path = "/Messages/Paid/Videos";
             }
-            if (!Directory.Exists(folder + path)) 
+            if (!Directory.Exists(folder + path))
             {
-                Directory.CreateDirectory(folder + path); 
+                Directory.CreateDirectory(folder + path);
             }
 
             if (!string.IsNullOrEmpty(filenameFormat) && messageInfo != null && messageMedia != null)
@@ -1168,7 +1175,7 @@ public class DownloadHelper : IDownloadHelper
             string filename = System.IO.Path.GetFileName(uri.LocalPath).Split(".")[0];
             if (downloadConfig.FolderPerPaidMessage && messageInfo != null && messageInfo?.id is not null && messageInfo?.createdAt is not null)
             {
-                path = $"/Messages/Paid/{messageInfo.id} {messageInfo.createdAt.Value:yyyy-MM-dd HH-mm-ss}/Videos";
+                path = $"/Messages/Paid/[{messageInfo.createdAt.Value:yyyy-MM-dd HH-mm}]{messageInfo.id}/Videos";
             }
             else
             {
@@ -1275,15 +1282,15 @@ public class DownloadHelper : IDownloadHelper
             string filename = System.IO.Path.GetFileName(uri.LocalPath).Split(".")[0];
             if (downloadConfig.FolderPerPost && postInfo != null && postInfo?.id is not null && postInfo?.postedAt is not null)
             {
-                path = $"/Posts/Free/{postInfo.id} {postInfo.postedAt:yyyy-MM-dd HH-mm-ss}/Videos";
+                path = $"/Posts/Free/[{postInfo.postedAt:yyyy-MM-dd HH-mm}]{postInfo.id}/Videos";
             }
             else
             {
                 path = "/Posts/Free/Videos";
             }
-            if (!Directory.Exists(folder + path)) 
+            if (!Directory.Exists(folder + path))
             {
-                Directory.CreateDirectory(folder + path); 
+                Directory.CreateDirectory(folder + path);
             }
 
             if (!string.IsNullOrEmpty(filenameFormat) && postInfo != null && postMedia != null)
@@ -1303,7 +1310,9 @@ public class DownloadHelper : IDownloadHelper
             {
                 if (!string.IsNullOrEmpty(customFileName) ? !File.Exists(folder + path + "/" + customFileName + ".mp4") : !File.Exists(folder + path + "/" + filename + "_source.mp4"))
                 {
-                    return await DownloadDrmMedia(auth.USER_AGENT, policy, signature, kvp, auth.COOKIE, url, decryptionKey, folder, lastModified, media_id, api_type, task, customFileName, filename, path);
+                    var result = await DownloadDrmMedia(auth.USER_AGENT, policy, signature, kvp, auth.COOKIE, url, decryptionKey, folder, lastModified, media_id, api_type, task, customFileName, filename, path);
+                    await DownloadPostInJson(folder, postInfo);
+                    return result;
                 }
                 else
                 {
@@ -1380,15 +1389,15 @@ public class DownloadHelper : IDownloadHelper
             string filename = System.IO.Path.GetFileName(uri.LocalPath).Split(".")[0];
             if (downloadConfig.FolderPerPost && postInfo != null && postInfo?.id is not null && postInfo?.postedAt is not null)
             {
-                path = $"/Posts/Free/{postInfo.id} {postInfo.postedAt:yyyy-MM-dd HH-mm-ss}/Videos";
+                path = $"/Posts/Free/[{postInfo.postedAt:yyyy-MM-dd HH-mm}]{postInfo.id}/Videos";
             }
             else
             {
                 path = "/Posts/Free/Videos";
             }
-            if (!Directory.Exists(folder + path)) 
+            if (!Directory.Exists(folder + path))
             {
-                Directory.CreateDirectory(folder + path); 
+                Directory.CreateDirectory(folder + path);
             }
 
             if (!string.IsNullOrEmpty(filenameFormat) && postInfo != null && postMedia != null)
@@ -1408,7 +1417,9 @@ public class DownloadHelper : IDownloadHelper
             {
                 if (!string.IsNullOrEmpty(customFileName) ? !File.Exists(folder + path + "/" + customFileName + ".mp4") : !File.Exists(folder + path + "/" + filename + "_source.mp4"))
                 {
-                    return await DownloadDrmMedia(auth.USER_AGENT, policy, signature, kvp, auth.COOKIE, url, decryptionKey, folder, lastModified, media_id, api_type, task, customFileName, filename, path);
+                    var result = await DownloadDrmMedia(auth.USER_AGENT, policy, signature, kvp, auth.COOKIE, url, decryptionKey, folder, lastModified, media_id, api_type, task, customFileName, filename, path);
+                    await DownloadPostInJson(folder, postInfo);
+                    return result;
                 }
                 else
                 {
@@ -1449,7 +1460,7 @@ public class DownloadHelper : IDownloadHelper
                         await m_DBHelper.UpdateMedia(folder, media_id, api_type, folder + path, customFileName + ".mp4", size, true, lastModified);
                     }
                 }
-                
+
                 if (downloadConfig.ShowScrapeSize)
                 {
                     long size = await m_DBHelper.GetStoredFileSize(folder, media_id, api_type);
@@ -1485,7 +1496,7 @@ public class DownloadHelper : IDownloadHelper
             string filename = System.IO.Path.GetFileName(uri.LocalPath).Split(".")[0];
             if (downloadConfig.FolderPerPost && streamInfo != null && streamInfo?.id is not null && streamInfo?.postedAt is not null)
             {
-                path = $"/Posts/Free/{streamInfo.id} {streamInfo.postedAt:yyyy-MM-dd HH-mm-ss}/Videos";
+                path = $"/Posts/Free/[{streamInfo.postedAt:yyyy-MM-dd HH-mm}]{streamInfo.id}/Videos";
             }
             else
             {
@@ -1591,15 +1602,15 @@ public class DownloadHelper : IDownloadHelper
             string filename = System.IO.Path.GetFileName(uri.LocalPath).Split(".")[0];
             if (downloadConfig.FolderPerPaidPost && postInfo != null && postInfo?.id is not null && postInfo?.postedAt is not null)
             {
-                path = $"/Posts/Paid/{postInfo.id} {postInfo.postedAt.Value:yyyy-MM-dd HH-mm-ss}/Videos";
+                path = $"/Posts/Paid/[{postInfo.postedAt.Value:yyyy-MM-dd HH-mm}]{postInfo.id}/Videos";
             }
             else
             {
                 path = "/Posts/Paid/Videos";
             }
-            if (!Directory.Exists(folder + path)) 
+            if (!Directory.Exists(folder + path))
             {
-                Directory.CreateDirectory(folder + path); 
+                Directory.CreateDirectory(folder + path);
             }
 
 
@@ -1697,9 +1708,9 @@ public class DownloadHelper : IDownloadHelper
             Uri uri = new(url);
             string filename = System.IO.Path.GetFileName(uri.LocalPath).Split(".")[0];
             string path = "/Archived/Posts/Free/Videos";
-            if (!Directory.Exists(folder + path)) 
+            if (!Directory.Exists(folder + path))
             {
-                Directory.CreateDirectory(folder + path); 
+                Directory.CreateDirectory(folder + path);
             }
 
             if (!string.IsNullOrEmpty(filenameFormat) && postInfo != null && postMedia != null)
@@ -1787,4 +1798,58 @@ public class DownloadHelper : IDownloadHelper
         return false;
     }
     #endregion
+
+    public async Task DownloadPostInJson(string folder, Post.List postInfo)
+    {
+        var path = string.Empty;
+        if (downloadConfig.FolderPerPost && postInfo != null && postInfo?.id is not null && postInfo?.postedAt is not null)
+        {
+            path = $"{folder}/Posts/Free/[{postInfo.postedAt:yyyy-MM-dd HH-mm}]{postInfo.id}/[{postInfo.postedAt:yyyy-MM-dd HH-mm}]{postInfo.id}.json";
+        }
+        else
+        {
+            path = "{folder}/Posts/Free/[{postInfo.postedAt:yyyy-MM-dd HH-mm}]{postInfo.id}.json";
+        }
+
+        var directory = Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        if (File.Exists(path))
+        {
+            return;
+        }
+        await using FileStream createStream = File.Create(path);
+        await JsonSerializer.SerializeAsync(createStream, postInfo);
+
+    }
+
+    public async Task DownloadPostInJson(string folder, SinglePost postInfo)
+    {
+        var path = string.Empty;
+        if (downloadConfig.FolderPerPost && postInfo != null && postInfo?.id is not null && postInfo?.postedAt is not null)
+        {
+            path = $"{folder}/Posts/Free/[{postInfo.postedAt:yyyy-MM-dd HH-mm}]{postInfo.id}/[{postInfo.postedAt:yyyy-MM-dd HH-mm}]{postInfo.id}.json";
+        }
+        else
+        {
+            path = $"{folder}/Posts/Free/[{postInfo.postedAt:yyyy-MM-dd HH-mm}]{postInfo.id}.json";
+        }
+
+        var directory = Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        if (File.Exists(path))
+        {
+            return;
+        }
+        await using FileStream createStream = File.Create(path);
+        await JsonSerializer.SerializeAsync(createStream, postInfo);
+
+    }
 }
